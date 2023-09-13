@@ -84,3 +84,23 @@ def test_pull_statuses(api):
         'muted', 'pinned', 'bookmarked', 'poll', 'emojis', '_pulled'
     ]
     assert isinstance(latest["id"], str)
+
+
+def test_search(api):
+
+    #results = list(api.search(searchtype="statuses", query="108211822140637685"))
+    results = list(api.search(searchtype="statuses", query="111057933536256461"))
+    assert isinstance(results, list)
+    assert len(results) == 1
+
+    assert list(results[0].keys()) == ['hashtags', 'accounts', 'statuses', 'groups']
+
+    assert not any(results[0]["hashtags"])
+    assert not any(results[0]["accounts"])
+    assert not any(results[0]["groups"])
+    statuses = results[0]["statuses"]
+    assert len(statuses) == 4 # WAT? WHY NOT 1
+
+    status_ids = [status["id"] for status in statuses]
+    # LOL WHAT? NONE OF THESE ARE THE REQUESTED POST
+    # ['111059069616643383', '111059090492248930', '111059036678298391', '111059085813415918']

@@ -145,7 +145,12 @@ class Api:
         min_id: str = "0",
         max_id: str = None,
     ) -> Optional[dict]:
-        """Search users, statuses or hashtags."""
+        """Search users, statuses or hashtags.
+
+            Params :
+                 searchtype (str) one of: 'hashtags', 'accounts', 'statuses', 'groups'
+
+        """
 
         self.__check_login()
         assert query is not None and searchtype is not None
@@ -180,6 +185,7 @@ class Api:
                 )
 
             offset += 40
+
             if not resp[searchtype]:
                 break
 
