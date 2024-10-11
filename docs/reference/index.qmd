@@ -1,0 +1,17 @@
+# Truthbrush Package Reference {.doc .doc-index}
+
+## API Reference
+
+Functions related to the Python API.
+
+| | |
+| --- | --- |
+| [api.Api](api.Api.qmd#truthbrush.api.Api) | A client for interfacing with the Truth Social API. |
+
+## CLI Reference
+
+Functions related to the command line interface (CLI).
+
+| | |
+| --- | --- |
+| [cli](cli.qmd#truthbrush.cli) | Defines the CLI for Truthbrush. |

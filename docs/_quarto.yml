@@ -1,0 +1,84 @@
+project:
+  type: website
+  output-dir: _build
+  preview:
+    #port: 5554 # use the same port instead of a new one each time
+    browser: true
+
+website:
+  title: "Truthbrush Documentation Site"
+
+  site-url: https://stanfordio.github.io/truthbrush/
+  repo-url: https://github.com/stanfordio/truthbrush
+  repo-branch: main
+  repo-subdir: docs
+  repo-actions: [edit, issue, source]
+
+  search: true
+  page-navigation: true # adds buttons at bottom of page
+
+  navbar:
+    right:
+      - href: index.qmd
+        text: Home
+      - about.qmd
+
+  sidebar:
+    contents:
+      - href: index.qmd
+        text: Home
+
+      - section:
+        href: reference/index.qmd
+        title: "Truthbrush Package Reference"
+        contents:
+          - href: reference/api.Api.qmd
+            text: "API Reference"
+          - href: reference/cli.qmd
+            text: "CLI Reference"
+
+
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    #code-copy: true
+
+
+#
+# PYTHON PACKAGE AUTO-DOCUMENTATION
+#
+
+# https://machow.github.io/quartodoc/get-started/basic-docs.html
+quartodoc:
+  # the name used to import the package you want to create reference docs for
+  package: truthbrush
+  #version: "v1.0.1"
+
+  # directory relative to current (docs/)
+  dir: reference
+
+  #style: pkgdown
+
+  parser: google # "numpy" or "google" or "sphinx"
+
+  title: Truthbrush Package Reference
+
+  sections:
+    - title: API Reference
+      desc: Functions related to the Python API.
+      contents:
+        - api.Api
+
+    #- title: API Reference
+    #  desc: Functions related to the Python API.
+    #  package: truthbrush.api
+    #  contents:
+    #    - Api
+
+    - title: CLI Reference
+      desc: Functions related to the command line interface (CLI).
+      contents:
+        - cli

@@ -1,0 +1,101 @@
+# cli { #truthbrush.cli }
+
+`cli`
+
+Defines the CLI for Truthbrush.
+
+## Functions
+
+| Name | Description |
+| --- | --- |
+| [ads](#truthbrush.cli.ads) | Pull ads. |
+| [cli](#truthbrush.cli.cli) | This is an API client for Truth Social. |
+| [groupposts](#truthbrush.cli.groupposts) | Pull posts from group timeline |
+| [groupsuggest](#truthbrush.cli.groupsuggest) | Pull group suggestions. |
+| [grouptags](#truthbrush.cli.grouptags) | Pull group tags. |
+| [grouptrends](#truthbrush.cli.grouptrends) | Pull group trends. |
+| [likes](#truthbrush.cli.likes) | Pull the top_num most recent users who liked the post. |
+| [search](#truthbrush.cli.search) | Search for users, statuses, groups, or hashtags. |
+| [statuses](#truthbrush.cli.statuses) | Pull a user's statuses |
+| [suggestions](#truthbrush.cli.suggestions) | Pull the list of suggested users. |
+| [tags](#truthbrush.cli.tags) | Pull trendy tags. |
+| [trends](#truthbrush.cli.trends) | Pull trendy Truths. |
+| [user](#truthbrush.cli.user) | Pull a user's metadata. |
+
+### ads { #truthbrush.cli.ads }
+
+`cli.ads()`
+
+Pull ads.
+
+### cli { #truthbrush.cli.cli }
+
+`cli.cli()`
+
+This is an API client for Truth Social.
+
+### groupposts { #truthbrush.cli.groupposts }
+
+`cli.groupposts(group_id, limit)`
+
+Pull posts from group timeline
+
+### groupsuggest { #truthbrush.cli.groupsuggest }
+
+`cli.groupsuggest()`
+
+Pull group suggestions.
+
+### grouptags { #truthbrush.cli.grouptags }
+
+`cli.grouptags()`
+
+Pull group tags.
+
+### grouptrends { #truthbrush.cli.grouptrends }
+
+`cli.grouptrends()`
+
+Pull group trends.
+
+### likes { #truthbrush.cli.likes }
+
+`cli.likes(post, top_num)`
+
+Pull the top_num most recent users who liked the post.
+
+### search { #truthbrush.cli.search }
+
+`cli.search(searchtype, query, limit, resolve)`
+
+Search for users, statuses, groups, or hashtags.
+
+### statuses { #truthbrush.cli.statuses }
+
+`cli.statuses(username, replies=False, created_after=None, pinned=False)`
+
+Pull a user's statuses
+
+### suggestions { #truthbrush.cli.suggestions }
+
+`cli.suggestions()`
+
+Pull the list of suggested users.
+
+### tags { #truthbrush.cli.tags }
+
+`cli.tags()`
+
+Pull trendy tags.
+
+### trends { #truthbrush.cli.trends }
+
+`cli.trends()`
+
+Pull trendy Truths.
+
+### user { #truthbrush.cli.user }
+
+`cli.user(handle)`
+
+Pull a user's metadata.

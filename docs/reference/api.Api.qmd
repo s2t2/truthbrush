@@ -1,0 +1,188 @@
+# api.Api { #truthbrush.api.Api }
+
+`api.Api(self, username=TRUTHSOCIAL_USERNAME, password=TRUTHSOCIAL_PASSWORD, token=TRUTHSOCIAL_TOKEN)`
+
+A client for interfacing with the Truth Social API.
+
+## Parameters
+
+| Name       | Type   | Description                                   | Default                |
+|------------|--------|-----------------------------------------------|------------------------|
+| `username` | str    | The user name for logging in to Truth Social. | `TRUTHSOCIAL_USERNAME` |
+| `password` | str    | The password for logging in to Truth Social.  | `TRUTHSOCIAL_PASSWORD` |
+
+## Examples
+
+Initialize the client by passing your Truth Social username and password:
+```python
+from truthbrush import Api
+
+client = Api(username="yourname", password="yourpass")
+```
+
+To avoid hard-coding these secret credentials, you are encouraged to use environment variables
+`TRUTHSOCIAL_USERNAME` and `TRUTHSOCIAL_PASSWORD`, for example stored in a local ".env" file.
+You could then pass these environment variables, or omit because they are used by default:
+
+```python
+from truthbrush import Api
+
+# assuming you have set env vars TRUTHSOCIAL_USERNAME and TRUTHSOCIAL_PASSWORD:
+client = Api()
+```
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [ads](#truthbrush.api.Api.ads) | Return a list of ads from Rumble's Ad Platform via Truth Social API. |
+| [get_auth_id](#truthbrush.api.Api.get_auth_id) | Logs in to Truth account and returns the session token |
+| [group_tags](#truthbrush.api.Api.group_tags) | Return trending group tags. |
+| [lookup](#truthbrush.api.Api.lookup) | Lookup a user's information. |
+| [pull_statuses](#truthbrush.api.Api.pull_statuses) | Pull the given user's statuses. |
+| [search](#truthbrush.api.Api.search) | Search users, statuses or hashtags. |
+| [suggested](#truthbrush.api.Api.suggested) | Return a list of suggested users to follow. |
+| [suggested_groups](#truthbrush.api.Api.suggested_groups) | Return a list of suggested groups to follow. |
+| [tags](#truthbrush.api.Api.tags) | Return trending tags. |
+| [trending](#truthbrush.api.Api.trending) | Return trending truths. |
+| [trending_groups](#truthbrush.api.Api.trending_groups) | Return trending group truths. |
+| [user_likes](#truthbrush.api.Api.user_likes) | Return the top_num most recent users who liked the post. |
+
+### ads { #truthbrush.api.Api.ads }
+
+`api.Api.ads(device='desktop')`
+
+Return a list of ads from Rumble's Ad Platform via Truth Social API.
+
+### get_auth_id { #truthbrush.api.Api.get_auth_id }
+
+`api.Api.get_auth_id(username, password)`
+
+Logs in to Truth account and returns the session token
+
+### group_tags { #truthbrush.api.Api.group_tags }
+
+`api.Api.group_tags()`
+
+Return trending group tags.
+
+### lookup { #truthbrush.api.Api.lookup }
+
+`api.Api.lookup(user_handle=None)`
+
+Lookup a user's information.
+
+### pull_statuses { #truthbrush.api.Api.pull_statuses }
+
+`api.Api.pull_statuses(replies=False, verbose=False, created_after=None, since_id=None, pinned=False, username=None, user_id=None)`
+
+Pull the given user's statuses.
+
+To specify which user, pass either the `username` or `user_id` parameter.
+The `user_id` parameter is preferred, as it skips an additional API call.
+
+To optionally filter posts, retaining only posts created after a given time,
+    pass either the `created_after` or `since_id` parameter,
+    designating a timestamp or identifier of a recent post, respectively.
+    Posts will be pulled exclusive of the provided filter condition.
+
+Returns a [generator](https://docs.python.org/3/reference/expressions.html#generator-expressions)
+    of posts in reverse chronological order, or an empty list if not found.
+
+#### Parameters
+
+| Name            | Type                           | Description                                                                                                                                                                           | Default   |
+|-----------------|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| `username`      | str                            | Username of the user you want to pull statuses for. Using this option will make an API call to get the user's id. If possible, pass the user_id instead to skip this additional call. | `None`    |
+| `user_id`       | str                            | Identifier of the user you want to pull statuses for.                                                                                                                                 | `None`    |
+| `created_after` | timezone aware datetime object | The timestamp of a post you have pulled most recently. For example, '2024-07-14 14:50:31.628257+00:00'.                                                                               | `None`    |
+| `since_id`      | number or string               | The identifier of a post you have pulled most recently.                                                                                                                               | `None`    |
+
+#### Examples
+
+Fetching all statuses by a given user:
+```python
+statuses = client.pull_statuses(username="user123")
+print(len(list(statuses)))
+```
+
+Fetching recent statuses, posted since a specified status identifier:
+```python
+recent_id = "0123456789"
+recent_statuses = client.pull_statuses(
+    username="user123",
+    since_id=recent_id
+)
+print(len(list(recent_statuses)))
+```
+
+Fetching recent statuses, posted since a specified timezone-aware timestamp:
+
+```python
+recent = '2024-07-14 14:50:31.628257+00:00'
+recent_statuses = client.pull_statuses(
+    username="user123",
+    created_after=recent
+)
+print(len(list(recent_statuses)))
+```
+
+```python
+from datetime import datetime, timedelta
+import dateutil
+
+recent = datetime.now() - timedelta(days=7)
+recent = dateutil.parse(recent).replace(tzinfo=timezone.utc)
+print(str(recent))
+#> '2024-07-14 14:50:31.628257+00:00'
+
+recent_statuses = client.pull_statuses(
+    username="user123",
+    created_after=recent
+)
+print(len(list(recent_statuses)))
+```
+
+### search { #truthbrush.api.Api.search }
+
+`api.Api.search(searchtype=None, query=None, limit=40, resolve=4, offset=0, min_id='0', max_id=None)`
+
+Search users, statuses or hashtags.
+
+### suggested { #truthbrush.api.Api.suggested }
+
+`api.Api.suggested(maximum=50)`
+
+Return a list of suggested users to follow.
+
+### suggested_groups { #truthbrush.api.Api.suggested_groups }
+
+`api.Api.suggested_groups(maximum=50)`
+
+Return a list of suggested groups to follow.
+
+### tags { #truthbrush.api.Api.tags }
+
+`api.Api.tags()`
+
+Return trending tags.
+
+### trending { #truthbrush.api.Api.trending }
+
+`api.Api.trending(limit=10)`
+
+Return trending truths.
+Optional arg limit<20 specifies number to return.
+
+### trending_groups { #truthbrush.api.Api.trending_groups }
+
+`api.Api.trending_groups(limit=10)`
+
+Return trending group truths.
+Optional arg limit<20 specifies number to return.
+
+### user_likes { #truthbrush.api.Api.user_likes }
+
+`api.Api.user_likes(post, top_num=40)`
+
+Return the top_num most recent users who liked the post.

@@ -143,7 +143,7 @@ truthbrush --help # will use your local copy of truthbrush
 If you prefer not to install Poetry in your root environment, you can also use Conda:
 
 ```sh
-conda create -n truthbrush-env python=3.9
+conda create -n truthbrush-env python=3.10
 conda activate truthbrush-env
 
 conda install -c conda-forge poetry
@@ -157,6 +157,9 @@ pytest
 
 # optionally run tests with verbose logging outputs:
 pytest --log-cli-level=DEBUG -s
+
+# optionally run tests with suppressed warnings:
+pytest --disable-pytest-warnings
 ```
 
 Please format your code with `black`:
@@ -164,6 +167,11 @@ Please format your code with `black`:
 ```sh
 black .
 ```
+
+### Continuous Integration
+
+The Continuous Integration build on GitHub Actions is controlled via the "python-app" workflow file. To make the build pass, the environment variables `TRUTHSOCIAL_USERNAME` and `TRUTHSOCIAL_PASSWORD` must be set as GitHub repository secrets.
+
 
 ## Wishlist
 

@@ -43,6 +43,33 @@ class LoginErrorException(Exception):
 
 
 class Api:
+    """A client for interfacing with the Truth Social API.
+
+    Params:
+        username (str): The user name for logging in to Truth Social.
+        password (str): The password for logging in to Truth Social.
+
+    Examples:
+        Initialize the client by passing your Truth Social username and password:
+        ```python
+        from truthbrush import Api
+
+        client = Api(username="yourname", password="yourpass")
+        ```
+
+        To avoid hard-coding these secret credentials, you are encouraged to use environment variables
+        `TRUTHSOCIAL_USERNAME` and `TRUTHSOCIAL_PASSWORD`, for example stored in a local ".env" file.
+        You could then pass these environment variables, or omit because they are used by default:
+
+        ```python
+        from truthbrush import Api
+
+        # assuming you have set env vars TRUTHSOCIAL_USERNAME and TRUTHSOCIAL_PASSWORD:
+        client = Api()
+        ```
+
+    """
+
     def __init__(
         self,
         username=TRUTHSOCIAL_USERNAME,
@@ -257,12 +284,18 @@ class Api:
 
     def trending(self, limit=10):
         """Return trending truths.
-        Optional arg limit<20 specifies number to return."""
+
+        Params:
+            limit (int, optional): specifies number of items to return (max 20)
+                Defaults to 10.
+
+        """
 
         self.__check_login()
         return self._get(f"/v1/truth/trending/truths?limit={limit}")
 
     def group_posts(self, group_id: str, limit=20):
+        """Return posts for a given group."""
         self.__check_login()
         timeline = []
         posts = self._get(f"/v1/timelines/group/{group_id}?limit={limit}")
@@ -354,25 +387,92 @@ class Api:
 
     def pull_statuses(
         self,
-        username: str,
         replies=False,
         verbose=False,
         created_after: datetime = None,
         since_id=None,
         pinned=False,
+        username=None,
+        user_id=None,
     ) -> List[dict]:
         """Pull the given user's statuses.
 
-        Params:
-            created_after : timezone aware datetime object
-            since_id : number or string
+        To specify which user, pass either the `username` or `user_id` parameter.
+        The `user_id` parameter is preferred, as it skips an additional API call.
 
-        Returns a list of posts in reverse chronological order,
-            or an empty list if not found.
+        To optionally filter posts, retaining only posts created after a given time,
+            pass either the `created_after` or `since_id` parameter,
+            designating a timestamp or identifier of a recent post, respectively.
+            Posts will be pulled exclusive of the provided filter condition.
+
+        Returns a [generator](https://docs.python.org/3/reference/expressions.html#generator-expressions)
+            of posts in reverse chronological order, or an empty list if not found.
+
+        Params:
+            username (str):
+                Username of the user you want to pull statuses for.
+                Using this option will make an API call to get the user's id.
+                If possible, pass the user_id instead to skip this additional call.
+
+            user_id (str):
+                Identifier of the user you want to pull statuses for.
+
+            created_after (timezone aware datetime object):
+                The timestamp of a post you have pulled most recently.
+                For example, '2024-07-14 14:50:31.628257+00:00'.
+
+            since_id (number or string):
+                The identifier of a post you have pulled most recently.
+
+        Examples:
+            Fetching all statuses by a given user:
+            ```python
+            statuses = client.pull_statuses(username="user123")
+            print(len(list(statuses)))
+            ```
+
+            Fetching recent statuses, posted since a specified status identifier:
+            ```python
+            recent_id = "0123456789"
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                since_id=recent_id
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+            Fetching recent statuses, posted since a specified timezone-aware timestamp:
+
+            ```python
+            recent = '2024-07-14 14:50:31.628257+00:00'
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                created_after=recent
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+            ```python
+            from datetime import datetime, timedelta
+            import dateutil
+
+            recent = datetime.now() - timedelta(days=7)
+            recent = dateutil.parse(recent).replace(tzinfo=timezone.utc)
+            print(str(recent))
+            #> '2024-07-14 14:50:31.628257+00:00'
+
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                created_after=recent
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+
         """
 
         params = {}
-        user_id = self.lookup(username)["id"]
+        user_id = user_id or self.lookup(username)["id"]
         page_counter = 0
         keep_going = True
         while keep_going:
@@ -432,7 +532,7 @@ class Api:
                     since_id and post["id"] <= since_id
                 ):
                     keep_going = False  # stop the loop, request no more pages
-                    break  # do not yeild this post or remaining (older) posts on this page
+                    break  # do not yield this post or remaining (older) posts on this page
 
                 if verbose:
                     logger.debug(f"{post['id']} {post['created_at']}")
