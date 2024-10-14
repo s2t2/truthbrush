@@ -1,9 +1,10 @@
 from time import sleep
-from typing import Any, Iterator, List, Optional
+from typing import Any, Iterator, List, Optional, Union
 from loguru import logger
 from dateutil import parser as date_parse
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone #, date
 from curl_cffi import requests
+import curl_cffi
 import json
 import logging
 import os
@@ -43,6 +44,33 @@ class LoginErrorException(Exception):
 
 
 class Api:
+    """A client for interfacing with the Truth Social API.
+
+    Params:
+        username (str): The user name for logging in to Truth Social.
+        password (str): The password for logging in to Truth Social.
+
+    Examples:
+        Initialize the client by passing your Truth Social username and password:
+        ```python
+        from truthbrush import Api
+
+        client = Api(username="yourname", password="yourpass")
+        ```
+
+        To avoid hard-coding these secret credentials, you are encouraged to use environment variables
+        `TRUTHSOCIAL_USERNAME` and `TRUTHSOCIAL_PASSWORD`, for example stored in a local ".env" file.
+        You could then pass these environment variables, or omit because they are used by default:
+
+        ```python
+        from truthbrush import Api
+
+        # assuming you have set env vars TRUTHSOCIAL_USERNAME and TRUTHSOCIAL_PASSWORD:
+        client = Api()
+        ```
+
+    """
+
     def __init__(
         self,
         username=TRUTHSOCIAL_USERNAME,
@@ -52,23 +80,24 @@ class Api:
         self.ratelimit_max = 300
         self.ratelimit_remaining = None
         self.ratelimit_reset = None
-        self.__username = username
-        self.__password = password
+        self._username = username
+        self._password = password
         self.auth_id = token
 
-    def __check_login(self):
-        """Runs before any login-walled function to check for login credentials and generates an auth ID token"""
+    def _check_login(self):
+        """Checks for login credentials and generates an auth ID token.
+        Developer Note: consider making this a decorator function and wrapping the API calls that need this.
+        """
         if self.auth_id is None:
-            if self.__username is None:
+            if self._username is None:
                 raise LoginErrorException("Username is missing.")
-            if self.__password is None:
+            if self._password is None:
                 raise LoginErrorException("Password is missing.")
-            self.auth_id = self.get_auth_id(self.__username, self.__password)
+            self.auth_id = self.get_auth_id(self._username, self._password)
             logger.warning(f"Using token {self.auth_id}")
 
     def _make_session(self):
-        s = requests.Session()
-        return s
+        return requests.Session()
 
     def _check_ratelimit(self, resp):
         if resp.headers.get("x-ratelimit-limit") is not None:
@@ -153,9 +182,9 @@ class Api:
 
     def user_likes(
         self, post: str, include_all: bool = False, top_num: int = 40
-    ) -> bool | Any:
+    ) -> Union[bool, Any]:
         """Return the top_num most recent (or all) users who liked the post."""
-        self.__check_login()
+        self._check_login()
         top_num = int(top_num)
         if top_num < 1:
             return
@@ -178,7 +207,7 @@ class Api:
         top_num: int = 40,
     ):
         """Return the top_num oldest (or all) replies to a post."""
-        self.__check_login()
+        self._check_login()
         top_num = int(top_num)
         if top_num < 1:
             return
@@ -200,7 +229,7 @@ class Api:
     def lookup(self, user_handle: str = None) -> Optional[dict]:
         """Lookup a user's information."""
 
-        self.__check_login()
+        self._check_login()
         assert user_handle is not None
         return self._get("/v1/accounts/lookup", params=dict(acct=user_handle))
 
@@ -209,14 +238,20 @@ class Api:
         searchtype: str = None,
         query: str = None,
         limit: int = 40,
-        resolve: bool = 4,
+        resolve: int = 4,
         offset: int = 0,
         min_id: str = "0",
         max_id: str = None,
     ) -> Optional[dict]:
-        """Search users, statuses or hashtags."""
+        """Search users, statuses, hashtags, or groups.
 
-        self.__check_login()
+        Params :
+            searchtype (str) the resource type, one of: 'hashtags', 'accounts', 'statuses', or 'groups'.
+
+            query (str) : the name of the resource to search for.
+
+        """
+        self._check_login()
         assert query is not None and searchtype is not None
 
         page = 0
@@ -248,30 +283,54 @@ class Api:
                     ),
                 )
 
-            offset += 40
+            offset += 40 # use limit here?
             # added new not sure if helpful
             if not resp or all(value == [] for value in resp.values()):
                 break
 
             yield resp
 
+
+    def search_simpler(self, resource_type: str, query: str, limit=40, offset=0):
+        """Search users, statuses, hashtags, or groups.
+
+        Params :
+            resource_type (str) the type of resource: 'hashtags', 'accounts', 'statuses', or 'groups'.
+
+            query (str) : the name of the resource to search for.
+        """
+        self._check_login()
+
+        params = dict(q=query, type=resource_type, limit=limit, offset=offset)
+        response = self._get("/v2/search", params=params)
+        results = response[resource_type] # return only the resources requested
+        return results
+
     def trending(self, limit=10):
         """Return trending truths.
-        Optional arg limit<20 specifies number to return."""
 
-        self.__check_login()
+        Params:
+            limit (int, optional): specifies number of items to return (max 20)
+                Defaults to 10.
+
+        """
+
+        self._check_login()
         return self._get(f"/v1/truth/trending/truths?limit={limit}")
 
     def group_posts(self, group_id: str, limit=20):
-        self.__check_login()
+        """Return posts for a given group."""
+        self._check_login()
         timeline = []
+
         posts = self._get(f"/v1/timelines/group/{group_id}?limit={limit}")
+
         while posts != None:
             timeline += posts
             limit = limit - len(posts)
             if limit <= 0:
                 break
-            max_id = posts[-1]["id"]
+            max_id = posts[-1]["id"] #> throws error when no results found
             posts = self._get(
                 f"/v1/timelines/group/{group_id}?max_id={max_id}&limit={limit}"
             )
@@ -280,36 +339,36 @@ class Api:
     def tags(self):
         """Return trending tags."""
 
-        self.__check_login()
+        self._check_login()
         return self._get("/v1/trends")
 
     def suggested(self, maximum: int = 50) -> dict:
         """Return a list of suggested users to follow."""
-        self.__check_login()
+        self._check_login()
         return self._get(f"/v2/suggestions?limit={maximum}")
 
     def trending_groups(self, limit=10):
         """Return trending group truths.
         Optional arg limit<20 specifies number to return."""
 
-        self.__check_login()
+        self._check_login()
         return self._get(f"/v1/truth/trends/groups?limit={limit}")
 
     def group_tags(self):
         """Return trending group tags."""
 
-        self.__check_login()
+        self._check_login()
         return self._get("/v1/groups/tags")
 
     def suggested_groups(self, maximum: int = 50) -> dict:
         """Return a list of suggested groups to follow."""
-        self.__check_login()
+        self._check_login()
         return self._get(f"/v1/truth/suggestions/groups?limit={maximum}")
 
     def ads(self, device: str = "desktop") -> dict:
         """Return a list of ads from Rumble's Ad Platform via Truth Social API."""
 
-        self.__check_login()
+        self._check_login()
         return self._get(f"/v3/truth/ads?device={device}")
 
     def user_followers(
@@ -354,25 +413,92 @@ class Api:
 
     def pull_statuses(
         self,
-        username: str,
         replies=False,
         verbose=False,
         created_after: datetime = None,
         since_id=None,
         pinned=False,
+        username=None,
+        user_id=None,
     ) -> List[dict]:
         """Pull the given user's statuses.
 
-        Params:
-            created_after : timezone aware datetime object
-            since_id : number or string
+        To specify which user, pass either the `username` or `user_id` parameter.
+        The `user_id` parameter is preferred, as it skips an additional API call.
 
-        Returns a list of posts in reverse chronological order,
-            or an empty list if not found.
+        To optionally filter posts, retaining only posts created after a given time,
+            pass either the `created_after` or `since_id` parameter,
+            designating a timestamp or identifier of a recent post, respectively.
+            Posts will be pulled exclusive of the provided filter condition.
+
+        Returns a [generator](https://docs.python.org/3/reference/expressions.html#generator-expressions)
+            of posts in reverse chronological order, or an empty list if not found.
+
+        Params:
+            username (str):
+                Username of the user you want to pull statuses for.
+                Using this option will make an API call to get the user's id.
+                If possible, pass the user_id instead to skip this additional call.
+
+            user_id (str):
+                Identifier of the user you want to pull statuses for.
+
+            created_after (timezone aware datetime object):
+                The timestamp of a post you have pulled most recently.
+                For example, '2024-07-14 14:50:31.628257+00:00'.
+
+            since_id (number or string):
+                The identifier of a post you have pulled most recently.
+
+        Examples:
+            Fetching all statuses by a given user:
+            ```python
+            statuses = client.pull_statuses(username="user123")
+            print(len(list(statuses)))
+            ```
+
+            Fetching recent statuses, posted since a specified status identifier:
+            ```python
+            recent_id = "0123456789"
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                since_id=recent_id
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+            Fetching recent statuses, posted since a specified timezone-aware timestamp:
+
+            ```python
+            recent = '2024-07-14 14:50:31.628257+00:00'
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                created_after=recent
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+            ```python
+            from datetime import datetime, timedelta
+            import dateutil
+
+            recent = datetime.now() - timedelta(days=7)
+            recent = dateutil.parse(recent).replace(tzinfo=timezone.utc)
+            print(str(recent))
+            #> '2024-07-14 14:50:31.628257+00:00'
+
+            recent_statuses = client.pull_statuses(
+                username="user123",
+                created_after=recent
+            )
+            print(len(list(recent_statuses)))
+            ```
+
+
         """
 
         params = {}
-        user_id = self.lookup(username)["id"]
+        user_id = user_id or self.lookup(username)["id"]
         page_counter = 0
         keep_going = True
         while keep_going:
@@ -432,7 +558,7 @@ class Api:
                     since_id and post["id"] <= since_id
                 ):
                     keep_going = False  # stop the loop, request no more pages
-                    break  # do not yeild this post or remaining (older) posts on this page
+                    break  # do not yield this post or remaining (older) posts on this page
 
                 if verbose:
                     logger.debug(f"{post['id']} {post['created_at']}")
@@ -466,7 +592,7 @@ class Api:
             sess_req.raise_for_status()
         except requests.RequestsError as e:
             logger.error(f"Failed login request: {str(e)}")
-            raise SystemExit('Cannot authenticate to .')
+            raise SystemExit("Cannot authenticate to .")
 
         if not sess_req.json()["access_token"]:
             raise ValueError("Invalid truthsocial.com credentials provided!")
